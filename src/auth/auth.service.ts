@@ -390,3 +390,4 @@ export class AuthService {
     return amount * (multipliers[unit] ?? 3600);
   }
 }
+
