@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# Prefer Yarn — ignore npm lockfile if created accidentally
+package-lock.json
+
 # Logs
 logs
 *.log
