@@ -15,7 +15,8 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit() {
-    const maxAttempts = 5;
+    // Keep serverless cold starts short (Vercel function timeout).
+    const maxAttempts = process.env.VERCEL ? 2 : 5;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
