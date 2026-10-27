@@ -14,8 +14,10 @@ import {
   ApiOperation,
   ApiQuery,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
@@ -34,7 +36,7 @@ import { AuthGuard } from './guards/auth.guard.js';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('signup')
   @ApiOperation({
@@ -47,12 +49,18 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Login with email and password (email must be verified)',
+    description: 'Rate limited: 5 attempts per IP per 60 seconds.',
   })
   @ApiOkResponse({ type: AuthResponse })
   @ApiUnauthorizedResponse({
     description: 'Invalid credentials or email not verified',
+  })
+  @ApiTooManyRequestsResponse({
+    description: 'Too many login attempts. Try again later.',
   })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
@@ -107,9 +115,14 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AuthGuard)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get the authenticated user profile' })
   @ApiOkResponse({ type: AuthUser })
+  @ApiTooManyRequestsResponse({
+    description: 'Too many requests. Try again later.',
+  })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   me(@CurrentUser() user: AuthUser) {
     return this.authService.me(user.id);
